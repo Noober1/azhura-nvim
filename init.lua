@@ -25,6 +25,8 @@ vim.opt.wrap = false
 vim.opt.termguicolors = true
 vim.opt.scrolloff = 8
 vim.opt.signcolumn = "yes"
+vim.opt.ignorecase = true
+vim.opt.smartcase = true
 vim.opt.clipboard = "unnamedplus"
 
 -- Plugins
@@ -35,11 +37,18 @@ require("lazy").setup({
     lazy = false,
     priority = 1000,
     config = function()
+      require("tokyonight").setup({
+        transparent = true,
+        styles = {
+          sidebars = "transparent",
+          floats = "transparent",
+        },
+      })
       vim.cmd("colorscheme tokyonight-night")
     end,
   },
 
-  -- File explorer
+  -- File explorer (buffer-based)
   {
     "stevearc/oil.nvim",
     opts = {
@@ -48,6 +57,36 @@ require("lazy").setup({
         ["k"] = "actions.select",
       },
       view_options = { show_hidden = true },
+    },
+  },
+
+  -- Sidebar file explorer
+  {
+    "nvim-neo-tree/neo-tree.nvim",
+    branch = "v3.x",
+    dependencies = {
+      "nvim-lua/plenary.nvim",
+      "nvim-tree/nvim-web-devicons",
+      "MunifTanjim/nui.nvim",
+    },
+    opts = {
+      window = {
+        position = "left",
+        width = 30,
+        mappings = {
+          ["i"] = "prev_item",
+          ["k"] = "next_item",
+          ["I"] = "noop",
+          ["K"] = "noop",
+        },
+      },
+      filesystem = {
+        filtered_items = {
+          hide_dotfiles = false,
+          hide_gitignored = false,
+        },
+        follow_current_file = { enabled = true },
+      },
     },
   },
 
@@ -65,7 +104,17 @@ require("lazy").setup({
   -- Status line
   {
     "nvim-lualine/lualine.nvim",
-    opts = { theme = "tokyonight" },
+    opts = {
+      theme = "tokyonight",
+      sections = {
+        lualine_a = { "mode" },
+        lualine_b = { "branch" },
+        lualine_c = { { "filename", path = 1 } },
+        lualine_x = { "encoding", "fileformat", "filetype" },
+        lualine_y = { "progress" },
+        lualine_z = { "location" },
+      },
+    },
   },
 
   -- LSP & Completion
@@ -109,6 +158,15 @@ require("lazy").setup({
     config = function()
       require("persistence").setup()
     end,
+  },
+
+  -- Keybinding hints
+  {
+    "folke/which-key.nvim",
+    event = "VeryLazy",
+    opts = {
+      delay = 500,
+    },
   },
 
   -- Diagnostics UI
@@ -174,6 +232,27 @@ require("lazy").setup({
 })
 
 -- ============================================================
+-- TABLINE
+-- ============================================================
+
+vim.opt.showtabline = 2
+
+function _G.MyTabline()
+  local s = ""
+  for i = 1, vim.fn.tabpagenr("$") do
+    local bufnr = vim.fn.tabpagebuflist(i)[vim.fn.tabpagewinnr(i)]
+    local bufname = vim.fn.bufname(bufnr)
+    local fname = bufname ~= "" and vim.fn.fnamemodify(bufname, ":t") or "[No Name]"
+    local modified = vim.fn.getbufvar(bufnr, "&modified") == 1 and " +" or ""
+    s = s .. (i == vim.fn.tabpagenr() and "%#TabLineSel#" or "%#TabLine#")
+    s = s .. " " .. i .. " " .. fname .. modified .. " "
+  end
+  return s .. "%#TabLineFill#"
+end
+
+vim.opt.tabline = "%!v:lua.MyTabline()"
+
+-- ============================================================
 -- KEYMAPS
 -- ============================================================
 
@@ -205,12 +284,16 @@ map("n", "<C-d>", "<C-d>zz", "Scroll down half page")
 -- Kembali ke normal mode dengan double i
 vim.keymap.set("i", "ii", "<Esc>", { noremap = true, silent = true })
 
+-- Keluar terminal mode
+vim.keymap.set("t", "ii", "<C-\\><C-n>", { noremap = true, silent = true })
+
 -- Undo/redo tetap
 map("n", "u",     "u",       "Undo")
 map("n", "U",     "<C-r>",   "Redo")
 
 -- File explorer
 map("n", "-", "<cmd>Oil<cr>", "Open file explorer")
+map("n", "<leader>e", "<cmd>Neotree toggle<cr>", "Toggle sidebar")
 
 -- Window navigation
 map("n", "<leader>wj", "<C-w>h", "Window left")
@@ -219,7 +302,7 @@ map("n", "<leader>wi", "<C-w>k", "Window up")
 map("n", "<leader>wk", "<C-w>j", "Window down")
 
 -- Claude Code terminal
-map("n", "<leader>ct", ":terminal claude-code<CR>", "Open Claude Code terminal")
+map("n", "<leader>ct", ":tabnew | terminal claude<CR>", "Open Claude Code terminal")
 
 -- Tab navigation by number
 for i = 1, 9 do
