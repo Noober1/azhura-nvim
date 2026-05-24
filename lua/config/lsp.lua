@@ -41,14 +41,14 @@ vim.lsp.config("ts_ls", {
 })
 
 vim.lsp.config("cssls", {
-  cmd = { "css-languageserver", "--stdio" },
+  cmd = { "vscode-css-language-server", "--stdio" },
   filetypes = { "css", "scss", "less" },
   capabilities = capabilities,
   on_attach = on_attach,
 })
 
 vim.lsp.config("jsonls", {
-  cmd = { "vscode-json-languageserver", "--stdio" },
+  cmd = { "vscode-json-language-server", "--stdio" },
   filetypes = { "json", "jsonc" },
   capabilities = capabilities,
   on_attach = on_attach,
